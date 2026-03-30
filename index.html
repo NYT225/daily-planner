@@ -581,6 +581,75 @@ body::before {
   .site-row { grid-template-columns: 1fr; gap: 8px; }
   .site-badges { display: flex; gap: 6px; flex-wrap: wrap; }
 }
+
+/* === ONBOARDING === */
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  gap: 24px;
+  padding: 40px 24px;
+}
+.onboarding h2 {
+  font-size: 28px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.onboarding p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  max-width: 420px;
+  line-height: 1.6;
+}
+.onboarding code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+}
+.upload-zone {
+  width: 100%;
+  max-width: 420px;
+  padding: 40px 24px;
+  border: 2px dashed var(--border-light);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+}
+.upload-zone:hover { border-color: var(--accent); background: var(--accent-dim); }
+.upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.upload-zone-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+.upload-zone-label strong { color: var(--accent); }
+.btn-reset {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: auto;
+}
+.btn-reset:hover { border-color: var(--danger); color: var(--danger); }
 </style>
 </head>
 <body>
@@ -588,7 +657,10 @@ body::before {
 <header class="header">
   <div class="header-inner">
     <div class="logo">CTRL<span>.planner</span></div>
-    <div class="header-date" id="headerDate"></div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="header-date" id="headerDate"></div>
+      <button class="btn-reset" id="btnReset" style="display:none" title="Recharger une config">Reset</button>
+    </div>
   </div>
 </header>
 
@@ -610,7 +682,7 @@ body::before {
 </main>
 
 <script>
-// ========== DATA ==========
+// ========== DATA (non-sensitive parts only) ==========
 const DATA = {
   daily_schedule: [
     { id:"wake", time:"06:00", duration_min:10, label:"Réveil sans écran", description:"Eau, lumière naturelle. Pas de téléphone.", category:"routine", days:["lun","mar","mer","jeu","ven","sam","dim"] },
@@ -648,11 +720,11 @@ const DATA = {
     { id:"sunday_planning", label:"Planning semaine suivante défini" }
   ],
   anti_procrastination: [
-    { icon:"✈", label:"Téléphone en mode avion", desc:"Pendant tous les blocs side project, sans exception" },
-    { icon:"🎮", label:"Jeux uniquement après 21h15", desc:"Jamais avant d'avoir complété les 2 blocs side project" },
-    { icon:"🎯", label:"Une seule tâche par bloc", desc:"Pas de multitasking entre les sites" },
-    { icon:"📋", label:"Planning du dimanche soir", desc:"Définir les 3 tâches prioritaires de la semaine" },
-    { icon:"⏱", label:"Règle des 2 minutes", desc:"Si une tâche prend moins de 2 min, la faire immédiatement" }
+    { icon:"\u2708", label:"Téléphone en mode avion", desc:"Pendant tous les blocs side project, sans exception" },
+    { icon:"\uD83C\uDFAE", label:"Jeux uniquement après 21h15", desc:"Jamais avant d'avoir complété les 2 blocs side project" },
+    { icon:"\uD83C\uDFAF", label:"Une seule tâche par bloc", desc:"Pas de multitasking entre les sites" },
+    { icon:"\uD83D\uDCCB", label:"Planning du dimanche soir", desc:"Définir les 3 tâches prioritaires de la semaine" },
+    { icon:"\u23F1", label:"Règle des 2 minutes", desc:"Si une tâche prend moins de 2 min, la faire immédiatement" }
   ],
   nutrition: {
     stop: [
@@ -675,22 +747,10 @@ const DATA = {
       "Dîner": ["Poisson + légumes rôtis","Omelette + salade verte","Légumineuses + légumes + riz"]
     }
   },
-  sites: [
-    { domain:"table-en-bois.fr", type:"link_selling", priority:1, status:"most_advanced" },
-    { domain:"harasdesgrillons.fr", type:"link_selling", priority:2, status:"to_evaluate" },
-    { domain:"spiruline-naturelle.fr", type:"link_selling", priority:3, status:"to_evaluate" },
-    { domain:"divskouarn.fr", type:"link_selling", priority:4, status:"to_evaluate" },
-    { domain:"inspirations-vintage.fr", type:"link_selling", priority:5, status:"to_evaluate" },
-    { domain:"vignette-asso.fr", type:"link_selling", priority:6, status:"to_evaluate" },
-    { domain:"toiture-service.fr", type:"lead_gen", priority:2, status:"to_develop" }
-  ],
-  platforms: ["Nextlevel","Rocketlinks","Ereferer"],
-  roadmap: [
-    { week:1, focus:"Distribution", tasks:["Inscrire table-en-bois.fr sur Nextlevel","Inscrire table-en-bois.fr sur Rocketlinks","Inscrire table-en-bois.fr sur Ereferer"] },
-    { week:2, focus:"Distribution", tasks:["Choisir le 2e site prioritaire selon historique de liens","Inscrire le 2e site sur les 3 plateformes"] },
-    { week:3, focus:"Contenu", tasks:["Identifier 5 mots-clés longue traîne pour table-en-bois.fr","Rédiger 1 article optimisé"] },
-    { week:4, focus:"Autorité", tasks:["Mettre en place un maillage de liens croisés entre les 7 sites","Booster le DR progressivement"] }
-  ]
+  // Sensitive data loaded from config.json via localStorage
+  sites: [],
+  platforms: [],
+  roadmap: []
 };
 
 // ========== UTILS ==========
@@ -987,10 +1047,90 @@ function renderRoadmap() {
   });
 }
 
+// ========== CONFIG LOADING ==========
+const CONFIG_KEY = 'dp-config';
+
+function loadConfig() {
+  try { return JSON.parse(localStorage.getItem(CONFIG_KEY)); } catch { return null; }
+}
+
+function saveConfig(cfg) {
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+}
+
+function applyConfig(cfg) {
+  DATA.sites = cfg.sites || [];
+  DATA.platforms = cfg.platforms || [];
+  DATA.roadmap = cfg.roadmap || [];
+}
+
+function showOnboarding() {
+  document.querySelector('.tab-bar').style.display = 'none';
+  document.getElementById('btnReset').style.display = 'none';
+  const main = document.querySelector('.main');
+  main.innerHTML = `
+    <div class="onboarding">
+      <h2>Bienvenue sur CTRL</h2>
+      <p>Pour activer la vue Roadmap, charge ton fichier <code>config.json</code> contenant tes sites, plateformes et roadmap. Ce fichier reste uniquement dans ton navigateur.</p>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" accept=".json" id="fileInput">
+        <div class="upload-zone-label"><strong>Clique ici</strong> ou glisse ton config.json</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('fileInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const cfg = JSON.parse(ev.target.result);
+        if (!cfg.sites || !cfg.platforms || !cfg.roadmap) throw new Error('Format invalide');
+        saveConfig(cfg);
+        applyConfig(cfg);
+        bootApp();
+      } catch (err) {
+        document.querySelector('.upload-zone-label').innerHTML = `<span style="color:var(--danger)">Fichier invalide. Vérifie le format.</span>`;
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
+function bootApp() {
+  document.querySelector('.tab-bar').style.display = 'flex';
+  document.getElementById('btnReset').style.display = 'block';
+  document.querySelector('.main').innerHTML = `
+    <section id="view-today" class="view active"></section>
+    <section id="view-tracker" class="view"></section>
+    <section id="view-roadmap" class="view"></section>
+  `;
+  // Re-bind tabs
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.dataset.view === 'today') btn.classList.add('active');
+  });
+  renderToday();
+  renderTracker();
+  renderRoadmap();
+}
+
+// Reset button
+document.getElementById('btnReset').addEventListener('click', () => {
+  if (confirm('Recharger une nouvelle config ? Les données de tracking sont conservées.')) {
+    localStorage.removeItem(CONFIG_KEY);
+    location.reload();
+  }
+});
+
 // ========== INIT ==========
-renderToday();
-renderTracker();
-renderRoadmap();
+const savedConfig = loadConfig();
+if (savedConfig) {
+  applyConfig(savedConfig);
+  bootApp();
+} else {
+  showOnboarding();
+}
 
 // Update current block every minute
 setInterval(() => {
