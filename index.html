@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CTRL — Daily Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root {
+  --bg-deep: #08090c;
+  --bg-surface: #0e1015;
+  --bg-card: #13151c;
+  --bg-card-hover: #1a1d28;
+  --bg-elevated: #1e2230;
+  --border: #1f2333;
+  --border-light: #2a2f44;
+  --text-primary: #e8e9ed;
+  --text-secondary: #7c8198;
+  --text-muted: #4a4f66;
+  --accent: #c8ff00;
+  --accent-dim: rgba(200,255,0,0.12);
+  --accent-glow: rgba(200,255,0,0.25);
+  --cat-routine: #6e7bf7;
+  --cat-variable: #f7a84e;
+  --cat-alimentation: #3dd9a0;
+  --cat-travail: #5ba4f7;
+  --cat-side: #f76ea8;
+  --cat-libre: #b47ef7;
+  --danger: #f74e4e;
+  --success: #3dd97a;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 16px;
+  --font-display: 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-display);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: var(--noise);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* === HEADER === */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(8,9,12,0.85);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+}
+.header-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+.logo {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 3px;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.logo span { color: var(--text-muted); font-weight: 400; }
+.header-date {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+/* === TABS === */
+.tab-bar {
+  display: flex;
+  gap: 2px;
+  padding: 12px 24px;
+  max-width: 948px;
+  margin: 0 auto;
+}
+.tab-btn {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+.tab-btn:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.tab-btn:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+.tab-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.tab-btn.active {
+  background: var(--accent);
+  color: var(--bg-deep);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--bg-deep);
+  opacity: 0.2;
+}
+
+/* === MAIN === */
+.main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px 24px 80px;
+}
+.view { display: none; animation: fadeIn 0.3s ease; }
+.view.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* === CARDS === */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(200,255,0,0.1), transparent);
+}
+.card-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+
+/* === TODAY VIEW === */
+.today-header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.today-day {
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.today-date-full {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.today-tags {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.today-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-weight: 600;
+}
+.today-tag.sport { background: rgba(110,123,247,0.15); color: var(--cat-routine); border: 1px solid rgba(110,123,247,0.25); }
+.today-tag.side_project { background: rgba(247,110,168,0.15); color: var(--cat-side); border: 1px solid rgba(247,110,168,0.25); }
+.today-tag.libre { background: rgba(180,126,247,0.15); color: var(--cat-libre); border: 1px solid rgba(180,126,247,0.25); }
+
+/* Timeline */
+.timeline { position: relative; }
+.time-block {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  transition: all 0.25s ease;
+}
+.time-block:last-child { border-bottom: none; }
+.time-block:hover { background: rgba(255,255,255,0.015); }
+.time-block.current {
+  background: var(--accent-dim);
+  margin: 0 -24px;
+  padding: 16px 24px;
+  border-radius: var(--radius);
+  border-bottom-color: transparent;
+}
+.time-block.current::before {
+  content: 'EN COURS';
+  position: absolute;
+  top: 6px; right: 16px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  color: var(--accent);
+  animation: pulse 2s ease infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.time-col {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding-top: 2px;
+}
+.time-block.current .time-col { color: var(--accent); }
+.block-content { display: flex; flex-direction: column; gap: 4px; }
+.block-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.block-cat-dot {
+  width: 8px; height: 8px;
+  border-radius: 2px;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.block-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.block-duration {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+.time-block.past .block-label { color: var(--text-muted); }
+.time-block.past .block-desc { color: var(--text-muted); opacity: 0.6; }
+.time-block.past .time-col { opacity: 0.5; }
+
+/* === TRACKER VIEW === */
+.checklist-grid { display: grid; gap: 12px; }
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.check-item:hover { border-color: var(--border-light); background: var(--bg-card-hover); }
+.check-item.checked { border-color: rgba(61,217,122,0.3); background: rgba(61,217,122,0.05); }
+.check-box {
+  width: 22px; height: 22px;
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
+}
+.check-item.checked .check-box {
+  background: var(--success);
+  border-color: var(--success);
+}
+.check-box svg { width: 14px; height: 14px; stroke: var(--bg-deep); stroke-width: 3; fill: none; opacity: 0; transition: opacity 0.2s; }
+.check-item.checked .check-box svg { opacity: 1; }
+.check-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  transition: color 0.2s;
+}
+.check-item.checked .check-label { color: var(--text-secondary); text-decoration: line-through; text-decoration-color: var(--text-muted); }
+.check-target {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  padding: 4px 10px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+/* Counter for weekly targets */
+.counter-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.counter-btn {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.counter-btn:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.counter-value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
+}
+.counter-value.hit { color: var(--success); }
+
+/* Progress bar */
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-surface);
+  border-radius: 2px;
+  margin-top: 16px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+/* Rules */
+.rules-grid { display: grid; gap: 10px; }
+.rule-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-surface);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--cat-side);
+}
+.rule-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+}
+.rule-content { display: flex; flex-direction: column; gap: 2px; }
+.rule-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.rule-desc { font-size: 12px; color: var(--text-secondary); }
+
+/* Nutrition */
+.nutrition-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 600px) { .nutrition-grid { grid-template-columns: 1fr; } }
+.nutrition-col h3 {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nutrition-col.stop h3 { color: var(--danger); }
+.nutrition-col.ok h3 { color: var(--success); }
+.nutrition-item {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.4;
+}
+.nutrition-item:last-child { border-bottom: none; }
+
+/* Meals */
+.meal-section { margin-top: 16px; }
+.meal-section h3 {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.meal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+.meal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.meal-card-title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--cat-alimentation);
+  margin-bottom: 8px;
+}
+.meal-card ul { list-style: none; }
+.meal-card li {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 3px 0;
+  position: relative;
+  padding-left: 12px;
+}
+.meal-card li::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  width: 4px; height: 4px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transform: translateY(-50%);
+}
+
+/* === ROADMAP VIEW === */
+.sites-grid { display: grid; gap: 8px; }
+.site-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+.site-row:hover { border-color: var(--border-light); }
+.site-domain {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.site-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-weight: 600;
+}
+.badge-priority {
+  background: rgba(200,255,0,0.1);
+  color: var(--accent);
+  border: 1px solid rgba(200,255,0,0.2);
+}
+.badge-type { background: rgba(91,164,247,0.1); color: var(--cat-travail); border: 1px solid rgba(91,164,247,0.2); }
+.badge-status-most_advanced { background: rgba(61,217,122,0.1); color: var(--success); border: 1px solid rgba(61,217,122,0.2); }
+.badge-status-to_evaluate { background: rgba(247,168,78,0.1); color: var(--cat-variable); border: 1px solid rgba(247,168,78,0.2); }
+.badge-status-to_develop { background: rgba(247,110,168,0.1); color: var(--cat-side); border: 1px solid rgba(247,110,168,0.2); }
+
+/* Week sections */
+.week-section {
+  margin-bottom: 12px;
+}
+.week-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.week-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-dim);
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 1px;
+}
+.week-focus {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.week-tasks { display: grid; gap: 8px; }
+
+/* Platforms */
+.platforms-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.platform-badge {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 600px) {
+  .header-inner { height: 56px; }
+  .logo { font-size: 15px; }
+  .tab-bar { padding: 8px 12px; }
+  .tab-btn { font-size: 9px; padding: 10px 8px; letter-spacing: 0.8px; }
+  .main { padding: 12px 12px 60px; }
+  .card { padding: 18px 16px; }
+  .today-day { font-size: 28px; }
+  .time-block { grid-template-columns: 52px 1fr; gap: 10px; }
+  .time-col { font-size: 11px; }
+  .block-label { font-size: 13px; }
+  .site-row { grid-template-columns: 1fr; gap: 8px; }
+  .site-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">CTRL<span>.planner</span></div>
+    <div class="header-date" id="headerDate"></div>
+  </div>
+</header>
+
+<nav class="tab-bar">
+  <button class="tab-btn active" data-view="today">Aujourd'hui</button>
+  <button class="tab-btn" data-view="tracker">Tracker</button>
+  <button class="tab-btn" data-view="roadmap">Roadmap</button>
+</nav>
+
+<main class="main">
+  <!-- TODAY VIEW -->
+  <section id="view-today" class="view active"></section>
+
+  <!-- TRACKER VIEW -->
+  <section id="view-tracker" class="view"></section>
+
+  <!-- ROADMAP VIEW -->
+  <section id="view-roadmap" class="view"></section>
+</main>
+
+<script>
+// ========== DATA ==========
+const DATA = {
+  daily_schedule: [
+    { id:"wake", time:"06:00", duration_min:10, label:"Réveil sans écran", description:"Eau, lumière naturelle. Pas de téléphone.", category:"routine", days:["lun","mar","mer","jeu","ven","sam","dim"] },
+    { id:"morning_block", time:"06:10", duration_min:80, label:"Sport ou side project", description:"Selon le jour du planning hebdomadaire", category:"variable", days:["lun","mar","mer","jeu","ven","sam","dim"] },
+    { id:"breakfast", time:"07:30", duration_min:20, label:"Petit-déjeuner no-sucre", description:"Oeufs, avocat, oléagineux, café sans sucre", category:"alimentation", days:["lun","mar","mer","jeu","ven","sam","dim"] },
+    { id:"work", time:"08:00", duration_min:600, label:"Boulot", description:"CDI / contrat freelance", category:"travail", days:["lun","mar","mer","jeu","ven"] },
+    { id:"decompress", time:"18:00", duration_min:20, label:"Décompression", description:"Marche, musique, douche. Pas de jeu, pas de scroll.", category:"routine", days:["lun","mar","mer","jeu","ven"] },
+    { id:"side_block_1", time:"18:20", duration_min:60, label:"Side project — bloc 1", description:"Focus total. Téléphone en mode avion. Une seule tâche.", category:"side_project", days:["lun","mar","mer","jeu","ven"] },
+    { id:"dinner", time:"19:30", duration_min:40, label:"Dîner maison", description:"Cuisine maison uniquement en semaine. Pas de livraison.", category:"alimentation", days:["lun","mar","mer","jeu","ven"] },
+    { id:"side_block_2", time:"20:15", duration_min:60, label:"Side project — bloc 2", description:"Focus ou temps libre structuré selon avancement", category:"side_project", days:["lun","mar","mer","jeu","ven"] },
+    { id:"free_time", time:"21:15", duration_min:60, label:"Temps libre", description:"Jeux, série, scroll — uniquement après avoir fait les blocs", category:"libre", days:["lun","mar","mer","jeu","ven"] },
+    { id:"wind_down", time:"22:15", duration_min:15, label:"Wind-down", description:"Lecture, podcast, étirements. Pas d'écran stimulant.", category:"routine", days:["lun","mar","mer","jeu","ven","sam","dim"] },
+    { id:"sleep", time:"22:30", duration_min:450, label:"Sommeil", description:"7h30 de sommeil cible", category:"routine", days:["lun","mar","mer","jeu","ven","sam","dim"] }
+  ],
+  weekly_planning: [
+    { day:"lun", morning:"sport", evening:"side_project" },
+    { day:"mar", morning:"side_project", evening:"side_project" },
+    { day:"mer", morning:"sport", evening:"side_project" },
+    { day:"jeu", morning:"side_project", evening:"side_project" },
+    { day:"ven", morning:"sport", evening:"libre" },
+    { day:"sam", morning:"sport", evening:"side_project" },
+    { day:"dim", morning:"libre", evening:"side_project" }
+  ],
+  daily_checklist: [
+    { id:"no_sugar", label:"Pas de sucre ajouté aujourd'hui" },
+    { id:"side_block_1", label:"Bloc side project 1 complété" },
+    { id:"side_block_2", label:"Bloc side project 2 complété" },
+    { id:"no_games_before_2115", label:"Pas de jeux avant 21h15" },
+    { id:"sleep_before_2230", label:"Couché avant 22h30" }
+  ],
+  weekly_checklist: [
+    { id:"sport_sessions", label:"Séances sport cette semaine", target:4 },
+    { id:"side_tasks_done", label:"Tâches side project complétées", target:3 },
+    { id:"batch_cooking", label:"Batch cooking dimanche fait" },
+    { id:"sunday_planning", label:"Planning semaine suivante défini" }
+  ],
+  anti_procrastination: [
+    { icon:"✈", label:"Téléphone en mode avion", desc:"Pendant tous les blocs side project, sans exception" },
+    { icon:"🎮", label:"Jeux uniquement après 21h15", desc:"Jamais avant d'avoir complété les 2 blocs side project" },
+    { icon:"🎯", label:"Une seule tâche par bloc", desc:"Pas de multitasking entre les sites" },
+    { icon:"📋", label:"Planning du dimanche soir", desc:"Définir les 3 tâches prioritaires de la semaine" },
+    { icon:"⏱", label:"Règle des 2 minutes", desc:"Si une tâche prend moins de 2 min, la faire immédiatement" }
+  ],
+  nutrition: {
+    stop: [
+      "Sucres ajoutés — sodas, jus de fruits, bonbons, gâteaux",
+      "Produits ultra-transformés — plats préparés, sauces industrielles",
+      "Livraisons en semaine",
+      "Alcool en semaine"
+    ],
+    ok: [
+      "Protéines à chaque repas — oeufs, poulet, poisson, légumineuses",
+      "Bonnes graisses — avocat, huile d'olive, oléagineux",
+      "Glucides complexes — riz complet, patate douce, flocons d'avoine",
+      "Légumes à volonté à chaque repas",
+      "Fruits entiers — 1 à 2 par jour max",
+      "Café et thé sans sucre"
+    ],
+    meals: {
+      "Petit-déj": ["2 oeufs + avocat + café sans sucre","Flocons d'avoine + fruits rouges + oléagineux","Oeufs brouillés + légumes sautés"],
+      "Déjeuner": ["Poulet + riz complet + légumes","Salade composée + thon + quinoa","Steak + patate douce + brocolis"],
+      "Dîner": ["Poisson + légumes rôtis","Omelette + salade verte","Légumineuses + légumes + riz"]
+    }
+  },
+  sites: [
+    { domain:"table-en-bois.fr", type:"link_selling", priority:1, status:"most_advanced" },
+    { domain:"harasdesgrillons.fr", type:"link_selling", priority:2, status:"to_evaluate" },
+    { domain:"spiruline-naturelle.fr", type:"link_selling", priority:3, status:"to_evaluate" },
+    { domain:"divskouarn.fr", type:"link_selling", priority:4, status:"to_evaluate" },
+    { domain:"inspirations-vintage.fr", type:"link_selling", priority:5, status:"to_evaluate" },
+    { domain:"vignette-asso.fr", type:"link_selling", priority:6, status:"to_evaluate" },
+    { domain:"toiture-service.fr", type:"lead_gen", priority:2, status:"to_develop" }
+  ],
+  platforms: ["Nextlevel","Rocketlinks","Ereferer"],
+  roadmap: [
+    { week:1, focus:"Distribution", tasks:["Inscrire table-en-bois.fr sur Nextlevel","Inscrire table-en-bois.fr sur Rocketlinks","Inscrire table-en-bois.fr sur Ereferer"] },
+    { week:2, focus:"Distribution", tasks:["Choisir le 2e site prioritaire selon historique de liens","Inscrire le 2e site sur les 3 plateformes"] },
+    { week:3, focus:"Contenu", tasks:["Identifier 5 mots-clés longue traîne pour table-en-bois.fr","Rédiger 1 article optimisé"] },
+    { week:4, focus:"Autorité", tasks:["Mettre en place un maillage de liens croisés entre les 7 sites","Booster le DR progressivement"] }
+  ]
+};
+
+// ========== UTILS ==========
+const DAY_MAP = ['dim','lun','mar','mer','jeu','ven','sam'];
+const DAY_NAMES = { dim:'Dimanche', lun:'Lundi', mar:'Mardi', mer:'Mercredi', jeu:'Jeudi', ven:'Vendredi', sam:'Samedi' };
+const CAT_COLORS = { routine:'var(--cat-routine)', variable:'var(--cat-variable)', alimentation:'var(--cat-alimentation)', travail:'var(--cat-travail)', side_project:'var(--cat-side)', libre:'var(--cat-libre)' };
+const STATUS_LABELS = { most_advanced:'Avancé', to_evaluate:'À évaluer', to_develop:'À développer' };
+
+function timeToMin(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
+function nowMin() { const d = new Date(); return d.getHours()*60+d.getMinutes(); }
+function todayKey() { return DAY_MAP[new Date().getDay()]; }
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function isoWeek() {
+  const d = new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate()+3-(d.getDay()+6)%7);
+  const w1 = new Date(d.getFullYear(),0,4);
+  return d.getFullYear()+'-W'+String(1+Math.round(((d-w1)/864e5-3+(w1.getDay()+6)%7)/7)).padStart(2,'0');
+}
+function loadState(key) { try { return JSON.parse(localStorage.getItem(key))||{}; } catch { return {}; } }
+function saveState(key, state) { localStorage.setItem(key, JSON.stringify(state)); }
+
+const checkSvg = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+// ========== HEADER DATE ==========
+document.getElementById('headerDate').textContent = new Date().toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short',year:'numeric'}).toUpperCase();
+
+// ========== TAB NAVIGATION ==========
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+  });
+});
+
+// ========== TODAY VIEW ==========
+function renderToday() {
+  const el = document.getElementById('view-today');
+  const day = todayKey();
+  const plan = DATA.weekly_planning.find(p => p.day === day);
+  const schedule = DATA.daily_schedule.filter(s => s.days.includes(day));
+  const now = nowMin();
+  const dateStr = new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+
+  let html = `
+    <div class="today-header">
+      <div class="today-day">${DAY_NAMES[day]}</div>
+      <div class="today-date-full">${dateStr}</div>
+    </div>
+    <div class="today-tags">
+      ${plan ? `<span class="today-tag ${plan.morning}">Matin : ${plan.morning.replace('_',' ')}</span>
+      <span class="today-tag ${plan.evening}">Soir : ${plan.evening.replace('_',' ')}</span>` : ''}
+    </div>
+    <div class="card">
+      <div class="card-title">Planning du jour</div>
+      <div class="timeline">
+  `;
+
+  schedule.forEach(block => {
+    const start = timeToMin(block.time);
+    const end = start + block.duration_min;
+    const isCurrent = now >= start && now < end;
+    const isPast = now >= end;
+    const cls = isCurrent ? 'current' : (isPast ? 'past' : '');
+    const durLabel = block.duration_min >= 60 ? `${Math.floor(block.duration_min/60)}h${block.duration_min%60 ? String(block.duration_min%60).padStart(2,'0') : ''}` : `${block.duration_min}min`;
+    const endH = String(Math.floor(end/60)).padStart(2,'0');
+    const endM = String(end%60).padStart(2,'0');
+
+    html += `
+      <div class="time-block ${cls}" id="block-${block.id}">
+        <div class="time-col">${block.time}<br><span style="opacity:0.5;font-size:10px">${endH}:${endM}</span></div>
+        <div class="block-content">
+          <div class="block-label">
+            <span class="block-cat-dot" style="background:${CAT_COLORS[block.category]}"></span>
+            ${block.label}
+          </div>
+          <div class="block-desc">${block.description}</div>
+          <div class="block-duration">${durLabel}</div>
+        </div>
+      </div>
+    `;
+  });
+
+  html += '</div></div>';
+  el.innerHTML = html;
+
+  const current = el.querySelector('.time-block.current');
+  if (current) setTimeout(() => current.scrollIntoView({behavior:'smooth',block:'center'}), 400);
+}
+
+// ========== TRACKER VIEW ==========
+function renderTracker() {
+  const el = document.getElementById('view-tracker');
+  const dKey = 'dp-daily-'+todayStr();
+  const wKey = 'dp-weekly-'+isoWeek();
+  const dState = loadState(dKey);
+  const wState = loadState(wKey);
+
+  let dailyDone = 0;
+  const dailyTotal = DATA.daily_checklist.length;
+
+  let html = `<div class="card">
+    <div class="card-title">Checklist du jour</div>
+    <div class="checklist-grid" id="dailyChecklist">`;
+
+  DATA.daily_checklist.forEach((item, i) => {
+    const checked = dState[item.id] || false;
+    if (checked) dailyDone++;
+    html += `
+      <div class="check-item${checked?' checked':''}" data-store="daily" data-key="${dKey}" data-id="${item.id}">
+        <div class="check-box">${checkSvg}</div>
+        <div class="check-label">${item.label}</div>
+      </div>`;
+  });
+
+  html += `</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${(dailyDone/dailyTotal)*100}%"></div></div>
+  </div>`;
+
+  // Weekly
+  html += `<div class="card">
+    <div class="card-title">Checklist de la semaine</div>
+    <div class="checklist-grid" id="weeklyChecklist">`;
+
+  DATA.weekly_checklist.forEach(item => {
+    if (item.target) {
+      const val = wState[item.id] || 0;
+      const hit = val >= item.target;
+      html += `
+        <div class="check-item${hit?' checked':''}" style="cursor:default">
+          <div class="check-box">${checkSvg}</div>
+          <div class="check-label">${item.label}</div>
+          <div class="counter-controls">
+            <button class="counter-btn" data-action="dec" data-key="${wKey}" data-id="${item.id}">−</button>
+            <span class="counter-value${hit?' hit':''}" id="cv-${item.id}">${val}</span>
+            <button class="counter-btn" data-action="inc" data-key="${wKey}" data-id="${item.id}">+</button>
+            <span class="check-target">/ ${item.target}</span>
+          </div>
+        </div>`;
+    } else {
+      const checked = wState[item.id] || false;
+      html += `
+        <div class="check-item${checked?' checked':''}" data-store="weekly" data-key="${wKey}" data-id="${item.id}">
+          <div class="check-box">${checkSvg}</div>
+          <div class="check-label">${item.label}</div>
+        </div>`;
+    }
+  });
+
+  html += `</div></div>`;
+
+  // Anti-procrastination
+  html += `<div class="card">
+    <div class="card-title">Règles anti-procrastination</div>
+    <div class="rules-grid">`;
+  DATA.anti_procrastination.forEach(r => {
+    html += `<div class="rule-item">
+      <div class="rule-icon">${r.icon}</div>
+      <div class="rule-content">
+        <div class="rule-label">${r.label}</div>
+        <div class="rule-desc">${r.desc}</div>
+      </div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  // Nutrition
+  html += `<div class="card">
+    <div class="card-title">Nutrition</div>
+    <div class="nutrition-grid">
+      <div class="nutrition-col stop">
+        <h3>Stop</h3>
+        ${DATA.nutrition.stop.map(s => `<div class="nutrition-item">${s}</div>`).join('')}
+      </div>
+      <div class="nutrition-col ok">
+        <h3>OK</h3>
+        ${DATA.nutrition.ok.map(s => `<div class="nutrition-item">${s}</div>`).join('')}
+      </div>
+    </div>
+    <div class="meal-section">
+      <h3>Idées repas</h3>
+      <div class="meal-grid">
+        ${Object.entries(DATA.nutrition.meals).map(([name, items]) => `
+          <div class="meal-card">
+            <div class="meal-card-title">${name}</div>
+            <ul>${items.map(i => `<li>${i}</li>`).join('')}</ul>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  el.innerHTML = html;
+
+  // Event: daily/weekly checkboxes
+  el.querySelectorAll('.check-item[data-store]').forEach(item => {
+    item.addEventListener('click', () => {
+      const key = item.dataset.key;
+      const id = item.dataset.id;
+      const state = loadState(key);
+      state[id] = !state[id];
+      saveState(key, state);
+      renderTracker();
+    });
+  });
+
+  // Event: counters
+  el.querySelectorAll('.counter-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const key = btn.dataset.key;
+      const id = btn.dataset.id;
+      const state = loadState(key);
+      let val = state[id] || 0;
+      if (btn.dataset.action === 'inc') val++;
+      else if (val > 0) val--;
+      state[id] = val;
+      saveState(key, state);
+      renderTracker();
+    });
+  });
+}
+
+// ========== ROADMAP VIEW ==========
+function renderRoadmap() {
+  const el = document.getElementById('view-roadmap');
+  const rKey = 'dp-roadmap';
+  const rState = loadState(rKey);
+
+  let html = `<div class="card">
+    <div class="card-title">Sites</div>
+    <div class="sites-grid">`;
+
+  DATA.sites.forEach(site => {
+    html += `
+      <div class="site-row">
+        <div class="site-domain">${site.domain}</div>
+        <span class="site-badge badge-priority">P${site.priority}</span>
+        <span class="site-badge badge-type">${site.type.replace('_',' ')}</span>
+        <span class="site-badge badge-status-${site.status}">${STATUS_LABELS[site.status]}</span>
+      </div>`;
+  });
+
+  html += `</div></div>`;
+
+  // Platforms
+  html += `<div class="card">
+    <div class="card-title">Plateformes</div>
+    <div class="platforms-row">
+      ${DATA.platforms.map(p => `<div class="platform-badge">${p}</div>`).join('')}
+    </div>
+  </div>`;
+
+  // Roadmap
+  html += `<div class="card">
+    <div class="card-title">Roadmap mensuelle</div>`;
+
+  DATA.roadmap.forEach((week, wi) => {
+    html += `
+      <div class="week-section">
+        <div class="week-header">
+          <span class="week-num">S${week.week}</span>
+          <span class="week-focus">${week.focus}</span>
+        </div>
+        <div class="week-tasks">`;
+
+    week.tasks.forEach((task, ti) => {
+      const taskId = `w${wi}-t${ti}`;
+      const checked = rState[taskId] || false;
+      html += `
+        <div class="check-item${checked?' checked':''}" data-store="roadmap" data-key="${rKey}" data-id="${taskId}">
+          <div class="check-box">${checkSvg}</div>
+          <div class="check-label">${task}</div>
+        </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  html += `</div>`;
+  el.innerHTML = html;
+
+  // Event: roadmap checkboxes
+  el.querySelectorAll('.check-item[data-store]').forEach(item => {
+    item.addEventListener('click', () => {
+      const key = item.dataset.key;
+      const id = item.dataset.id;
+      const state = loadState(key);
+      state[id] = !state[id];
+      saveState(key, state);
+      renderRoadmap();
+    });
+  });
+}
+
+// ========== INIT ==========
+renderToday();
+renderTracker();
+renderRoadmap();
+
+// Update current block every minute
+setInterval(() => {
+  const activeView = document.querySelector('.tab-btn.active');
+  if (activeView && activeView.dataset.view === 'today') renderToday();
+}, 60000);
+</script>
+</body>
+</html>
